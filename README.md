@@ -107,3 +107,54 @@ import { SeedService } from './seed.service';
 export  class  SeedModule {}
 ```
 
+
+# Global prefix
+
+Para colocar un prefix global a nuestra api, podemos modificar nuestro archivo `main.ts` y colocar las siguientes instrucciones:
+
+```typescript
+import { NestFactory } from '@nestjs/core';
+
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await  NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('api');
+
+  await app.listen(process.env.PORT ?? 3000);
+}
+
+bootstrap();
+```
+
+
+# Paquetes para bases de datos
+
+## MongoDB
+
+```bash
+yarn add @nestjs/mongoose mongoose
+```
+
+```typescript
+// main.ts
+import { join } from 'path';
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ServeStaticModule } from '@nestjs/serve-static';
+
+import { PokemonModule } from './pokemon/pokemon.module';
+
+@Module({
+  imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+    }),
+    MongooseModule.forRoot('mongodb://localhost:27017/nest-pokemon'),
+    PokemonModule,
+  ],
+})
+export  class  AppModule {}
+```
+
