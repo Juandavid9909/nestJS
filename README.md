@@ -50,6 +50,10 @@ app.useGlobalPipes(
   new ValidationPipe({
     whitelist: true,
     forbidNonWhitelisted: true,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true,
+    },
   }),
 );
 
@@ -156,5 +160,5 @@ import { PokemonModule } from './pokemon/pokemon.module';
   ],
 })
 export  class  AppModule {}
-```
+```	
 

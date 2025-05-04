@@ -9,6 +9,7 @@ import { isValidObjectId, Model } from 'mongoose';
 import { MongoServerError } from 'mongodb';
 
 import { CreatePokemonDto } from './dto/create-pokemon.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Pokemon } from './entities/pokemon.entity';
 import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 
@@ -31,8 +32,15 @@ export class PokemonService {
     }
   }
 
-  public findAll() {
-    return `This action returns all pokemon`;
+  public findAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+
+    return this.pokemonModel
+      .find()
+      .limit(limit)
+      .skip(offset)
+      .sort({ no: 1 })
+      .select('-__v');
   }
 
   public async findOne(term: string) {
