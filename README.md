@@ -160,5 +160,100 @@ import { PokemonModule } from './pokemon/pokemon.module';
   ],
 })
 export  class  AppModule {}
-```	
+```
+
+
+# Variables de entorno
+
+Para poder usar nuestros archivos `.env` tendremos que indicarle a Nest de la existencia del mismo. Para poder hacer esto tendremos que instalar el siguiente paquete:
+
+```bash
+yarn add @nestjs/config
+```
+
+Hecho esto, tendremos que agregar en nuestro `app.module.ts` en los imports `ConfigModule.forRoot()`.
+
+```typescript
+import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common';
+
+@Module({
+  imports: [ConfigModule.forRoot()],
+})
+export  class  AppModule {}
+```
+
+
+## Configuration loader
+
+Para garantizar que los datos sean adecuados y no recibir un `undefined` de forma inesperada, podemos crear un configuration loader, para esto es típico usar archivos con nombre `app.config.ts` o `env.config.ts` y podemos crear un archivo con la siguiente sintaxis:
+
+```typescript
+export const EnvConfiguration = () => ({
+  environment: process.env.NODE_ENV || 'dev',
+  mongodb: process.env.MONGODB_URL,
+  port: process.env.PORT || 3002,
+  defaultLimit: +(process.env.DEFAULT_LIMIT || 7),
+});
+```
+
+Y luego modificar nuestro `app.module.ts` para indicarle a Nest que debe usar ese archivo de configuración.
+
+```typescript
+import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common';
+
+import { EnvConfiguration } from './config/env.config';
+
+@Module({
+  imports: [ConfigModule.forRoot({
+    load: [EnvConfiguration],
+  })],
+})
+export  class  AppModule {}
+```
+
+## Configuration service
+
+En el constructor de nuestro servicio podemos colocar un parámetro con tipado `ConfigService` para poder pasar nuestro objeto con todos los valores de las variables de entorno. También debemos agregar el `ConfigModule` en nuestros imports del módulo donde queremos usar estas variables de entorno.
+
+
+## Validación de Schemas con joi
+
+Lo primero que debemos hacer es instalar el paquete:
+
+```bash
+yarn add joi
+```
+
+Luego podemos crearnos un archivo `joi.validation.ts` con el siguiente contenido:
+
+```typescript
+import * as Joi from 'joi';
+
+export const JoiValidationSchema  =  Joi.object({
+  MONGODB_DATABASE: Joi.required(),
+  MONGODB_URL: Joi.required(),
+  PORT: Joi.number().default(3005),
+  DEFAULT_LIMIT: Joi.number().default(6),
+});
+```
+
+Y en nuestro `app.module.ts` colocar lo siguiente en los imports:
+
+```typescript
+import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common';
+
+import { EnvConfiguration } from './config/env.config';
+import { JoiValidationSchema } from './config/joi.validation';
+
+@Module({
+  imports: [ConfigModule.forRoot({
+    load: [EnvConfiguration],
+    validationSchema: JoiValidationSchema,
+  })],
+})
+export  class  AppModule {}
+```
 
