@@ -142,7 +142,6 @@ yarn add @nestjs/mongoose mongoose
 ```
 
 ```typescript
-// main.ts
 import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -160,6 +159,71 @@ import { PokemonModule } from './pokemon/pokemon.module';
   ],
 })
 export  class  AppModule {}
+```
+
+
+## PostgreSQL
+
+```bash
+yarn add @nestjs/typeorm typeorm pg
+```
+
+```typescript
+import { ConfigModule } from '@nestjs/config';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: +process.env.DB_PORT!,
+      database: process.env.DB_NAME,
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      autoLoadEntities: true,
+      synchronize: true, // Usualmente falso en producción
+    }),
+  ],
+})
+
+export class AppModule {}
+```
+
+### TypeORM
+En el ejemplo estamos usando TypeORM, para ello en nuestro nuevo recurso debemos hacer la siguiente configuración:
+
+```typescript
+// product.entity.ts
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity()
+export  class  Product {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column('text', {
+    unique: true,
+  })
+  title: string;
+}
+
+// products.module.ts
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { Product } from './entities/product.entity';
+import { ProductsController } from './products.controller';
+import { ProductsService } from './products.service';
+
+@Module({
+  controllers: [ProductsController],
+  providers: [ProductsService],
+  imports: [TypeOrmModule.forFeature([Product])],
+})
+export  class  ProductsModule {}
 ```
 
 

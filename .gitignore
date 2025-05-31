@@ -11,14 +11,8 @@ dist/
 
 coverage/
 
-mongo/
-mongo-test/
-
 mongodb/
 mongodb-test/
-
-postgres/
-postgres-test/
 
 postgresql/
 postgresql-test/
