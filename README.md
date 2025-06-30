@@ -437,3 +437,29 @@ services:
     #   - ./mongo:/data/db
 ```
 
+
+# Carga de archivos
+
+Primero necesitaremos crear un recurso REST API para poder agregar nuestro endpoint:
+
+```bash
+nest g res files --no-spec
+```
+
+Luego modificamos y agregamos nuestro endpoint en nuestro nuevo controlador y servicio, hecho esto instalamos el siguiente paquete de definición:
+
+```bash
+npm i -D @types/multer
+```
+
+Hecho todo esto podemos crear nuestros validadores, recibir nuestros archivos y demás, para ver el ejemplo completo podemos acceder al proyecto 04.
+
+
+## Nota
+
+Importante tener en cuenta que si queremos servir archivos estáticos tendremos que realizar otra instalación:
+
+```bash
+npm i @nestjs/serve-static
+```
+
