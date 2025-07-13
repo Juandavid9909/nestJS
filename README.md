@@ -463,3 +463,147 @@ Importante tener en cuenta que si queremos servir archivos estáticos tendremos 
 npm i @nestjs/serve-static
 ```
 
+
+# Autenticación
+
+## Encriptación de contraseñas
+
+Para encriptar contraseñas podemos usar la librería `bcrypt`, y podemos ejecutar la siguiente instrucción:
+
+```typescript
+import * as bcrypt from 'bcrypt';
+
+const hashedPassword: string = bcrypt.hashSync('youPassword', 10);
+```
+
+Y para validar 2 contraseñas (sabiendo que la encriptación es en una sola vía) podemos ejecutar la siguiente línea de código:
+
+```typescript
+const passwordMatches: boolean = bcrypt.compareSync(password, user.password);
+```
+
+
+## JWT
+
+Para basar nuestra autenticación en JWTs podemos hacer uso de la siguiente [referencia](https://docs.nestjs.com/security/authentication#jwt-functionality) de la documentación de NestJS.
+
+Como requerimiento tendremos que agregar los siguientes paquetes:
+
+```bash
+yarn add @nestjs/passport passport
+
+yarn add @nestjs/jwt passport-jwt
+
+yarn add -D @types/passport-jwt
+```
+
+Teniendo ya instalado todo esto, para indicar que vamos a usar JWT, tendremos que modificar nuestro módulo de autenticación de la siguiente manera:
+
+```typescript
+import { Module } from '@nestjs/common';
+
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { User } from './entities/user.entity';
+
+@Module({
+  controllers: [AuthController],
+  providers: [AuthService, JwtStrategy],
+  imports: [
+    ConfigModule,
+    TypeOrmModule.forFeature([User]),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    // JwtModule.register({
+      // secret: process.env.JWT_SECRET,
+      // signOptions: {
+        // expiresIn: '2h',
+      // },
+    // }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService)  => {
+        return {
+          secret: configService.get<string>('JWT_SECRET'),
+          signOptions: {
+            expiresIn: '2h',
+          },
+        };
+      },
+    }),
+  ],
+  exports: [JwtModule, JwtStrategy, PassportModule, TypeOrmModule],
+})
+export class AuthModule {}
+```
+
+Como podemos ver usamos registerAsync y no register, esto es porque así podemos hacer la inyección de dependencias del configService y adicional podemos esperar a que las variables de entorno ya estén cargadas para ser leídas en el código.
+
+En nuestro JwtStrategy indicamos toda la validación y demás que queremos aplicar para la autenticación de nuestros endpoints:
+
+```typescript
+import { ConfigService } from '@nestjs/config';
+import { Injectable, UnauthorizedException } from  '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PassportStrategy } from '@nestjs/passport';
+
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Repository } from 'typeorm';
+
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { User } from '../entities/user.entity';
+
+@Injectable()
+export  class  JwtStrategy  extends  PassportStrategy(Strategy) {
+  constructor(
+    @InjectRepository(User)
+    private  readonly  userRepository: Repository<User>,
+
+    configService: ConfigService,
+  ) {
+    super({
+      secretOrKey: configService.get<string>('JWT_SECRET')!,
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    });
+  }
+
+  async  validate(payload: JwtPayload): Promise<User> {
+    const { email } = payload;
+
+    const user = await this.userRepository.findOneBy({ email });
+
+    if (!user) throw new UnauthorizedException('Token not valid');
+
+    if (!user.isActive) throw new UnauthorizedException('User is inactive');
+
+    return  user;
+  }
+}
+```
+
+Y ya para usar todo lo que creamos para generar nuestro JWT, podemos hacer algo como lo siguiente:
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly jwtService: JwtService,
+  ) {}
+
+  private  getJwt(payload: JwtPayload) {
+    const token = this.jwtService.sign(payload);
+
+    return token;
+  }
+}
+```
+
