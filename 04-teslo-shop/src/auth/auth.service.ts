@@ -16,9 +16,10 @@ import { User } from './entities/user.entity';
 
 export interface UserData {
   email: string;
-  password?: string;
   fullName: string;
+  id: string;
   isActive?: boolean;
+  password?: string;
   roles?: string[];
 }
 
@@ -45,7 +46,7 @@ export class AuthService {
 
       return {
         ...user,
-        token: this.getJwt({ email: user.email }),
+        token: this.getJwt({ id: user.id }),
       };
     } catch (error) {
       this.handleDBErrors(error as { [key: string]: any });
@@ -61,6 +62,7 @@ export class AuthService {
       },
       select: {
         email: true,
+        id: true,
         password: true,
       },
     });
@@ -72,8 +74,9 @@ export class AuthService {
       throw new UnauthorizedException('Credentials are no valid (password)');
 
     return {
-      ...user,
-      token: this.getJwt({ email: user.email }),
+      email: user.email,
+      password: user.password,
+      token: this.getJwt({ id: user.id }),
     };
   }
 
