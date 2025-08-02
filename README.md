@@ -599,11 +599,96 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+
+  private  login(payload: JwtPayload) {
+    return {
+      token: this.getJwt({ email: user.email }), // Podemos usar el campo que queramos para nuestro payload
+    };
+  }
+
   private  getJwt(payload: JwtPayload) {
     const token = this.jwtService.sign(payload);
 
     return token;
   }
+}
+```
+
+
+## Custom guards
+
+Para proteger nuestras rutas y hacerlas privadas, la forma recomendada es tener nuestros propios Guards, para ello primero debemos generar un nuevo Guard para nuestra autenticación:
+
+```bash
+nest g gu auth/guards/userRole --no-spec
+```
+
+Y también tendremos que generar un decorador para controlar el manejo de nuestros datos (en este caso los roles del usuario):
+
+```bash
+nest g d auth/decorators/roleProtected --no-spec
+```
+
+
+## Composición de decoradores
+
+Si queremos tener un decorador personalizado que junte varios decoradores podemos hacer algo como lo siguiente:
+
+```typescript
+// Decorador nuevo
+import { applyDecorators, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+import { RoleProtected } from './role-protected.decorator';
+import { UserRoleGuard } from '../guards/user-role.guard';
+import { ValidRoles } from '../interfaces';
+  
+export function Auth(...roles: ValidRoles[]) {
+  return applyDecorators(
+    RoleProtected(...roles),
+    UseGuards(AuthGuard(), UserRoleGuard),
+  );
+}
+
+// Nuestro endpoint en el controlador
+@Get('private3')
+@Auth(ValidRoles.admin, ValidRoles.superUser)
+privateRoute3(@GetUser() user: User) {
+  return {
+    ok: true,
+    user,
+  };
+}
+```
+
+
+## Usar nuestro nuevo decorador en otro módulo
+
+Para usar nuestro decorador de Auth en otro módulo, podemos hacer lo siguiente en el módulo que estamos actualizando:
+
+```typescript
+import { Module } from '@nestjs/common';
+
+import { AuthModule } from '../auth/auth.module';
+import { ProductsModule } from '../products/products.module';
+import { SeedController } from './seed.controller';
+import { SeedService } from './seed.service';
+
+@Module({
+  controllers: [SeedController],
+  providers: [SeedService],
+  imports: [AuthModule, ProductsModule],
+})
+export  class  SeedModule {}
+```
+
+Si queremos que todos los endpoints de nuestro controlador requieran autenticación podemos hacer esto:
+
+```typescript
+@Controller('products')
+@Auth()
+export class ProductsController {
+  // Nuestro constructor y endpoints
 }
 ```
 
