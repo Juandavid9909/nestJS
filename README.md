@@ -692,3 +692,122 @@ export class ProductsController {
 }
 ```
 
+
+# Documentación en OpenAPI
+
+Esto nos permite generar la documentación de Swagger de forma semiautomática, y para usarla debemos instalar el siguiente paquete:
+
+```bash
+npm i --save @nestjs/swagger
+```
+
+Y para nuestro `main.ts` podemos colocar lo siguiente:
+
+```typescript
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await  NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
+
+  app.setGlobalPrefix('api');
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
+
+  const config = new DocumentBuilder()
+    .setTitle('Teslo RESTFul API')
+    .setDescription('Teslo shop endpoints')
+    .setVersion('1.0')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  await app.listen(process.env.PORT ?? 3000);
+
+  logger.log(`App running on port ${process.env.PORT ?? 3000}`);
+}
+bootstrap();
+```
+
+
+## Tags
+
+Por defecto Swagger no agrupará nuestros endpoints, para agruparlos podemos hacer uso de nuestros tags en nuestros controladores, tal como lo siguiente:
+
+```typescript
+import { ApiTags } from '@nestjs/swagger';
+import { Controller } from '@nestjs/common';
+
+@ApiTags('Products')
+@Controller('products')
+export class ProductsController {
+  // Nuestro constructor y endpoints
+}
+```
+
+
+## ApiResponse
+
+Nos permiten indicarle a Swagger qué statuses retornará nuestro endpoint y el tipado de la respuesta:
+
+```typescript
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
+
+@ApiTags('Products')
+@Controller('products')
+export class ProductsController {
+  constructor(private readonly productsService: ProductsService) {}
+
+  @Post()
+  @Auth()
+  @ApiResponse({
+    description: 'Product was created',
+    status: 201,
+    type: Product,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 403, description: 'Forbidden. Token related' })
+  create(@Body() createProductDto: CreateProductDto, @GetUser() user: User) {
+    return this.productsService.create(createProductDto, user);
+  }
+}
+```
+
+## ApiProperty
+
+Para que Swagger detecte todas las propiedades tendremos que modificar también nuestro  entity, ya que aunque sabrá el tipado no lo mostrará en la documentación de nuestra API:
+
+```typescript
+@Entity({ name: 'products' })
+export class Product {
+  @ApiProperty({
+    description: 'Product ID',
+    example: 'cd533345-f1f3-48c9-a62e-7dc2da50c8f8',
+    uniqueItems: true,
+  })
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+}
+```
+
+Esto mismo se puede hacer en nuestros DTOs para que la interfaz muestre de manera amigable los campos para hacer los requests a nuestros endpoints. Importante tener en cuenta que si tenemos un DTO que extiende de otro, por defecto no tomará los decoradores del DTO padre, para corregirlo debemos hacer:
+
+```typescript
+// import { PartialType } from '@nestjs/mapped-types';
+import { PartialType } from '@nestjs/swagger';
+
+import { CreateProductDto } from './create-product.dto';
+
+export class UpdateProductDto extends PartialType(CreateProductDto) {}
+```
+
