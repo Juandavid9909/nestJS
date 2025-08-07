@@ -817,6 +817,9 @@ export class UpdateProductDto extends PartialType(CreateProductDto) {}
 Para generar nuestros recursos de Websockets, ejecutamos el comando para generar un nuevo recurso y seleccionamos que sea de tipo Socket, y también necesitaremos los siguientes paquetes para nuestro proyecto:
 
 ```bash
-npm i --save @nestjs/websockets @nestjs/platform-socket.io
+npm i --save @nestjs/websockets @nestjs/platform-socket.io socket.io
+
+# Para nuestro cliente
+npm i socket.io-client
 ```
 
